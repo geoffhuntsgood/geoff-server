@@ -1,96 +1,60 @@
-const cors = require("cors");
-const express = require("express");
-const fs = require("fs");
-const nodemailer = require("nodemailer");
-require("dotenv").config();
+import cors from "cors";
+import "dotenv/config";
+import express, { json } from "express";
+import postgres from "postgres";
 
 const app = express();
-
 app.use(cors());
+app.use(json());
 
-const transporter = nodemailer.createTransport({
-  host: "live.smtp.mailtrap.io",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
+const db = postgres({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_DATABASE,
+  user: process.env.DB_USER,
+  pass: process.env.DB_PASS,
+  ssl: true
 });
 
-app.get("/best-time/:category", (req, res) => {
+app.get("/get-poke-times/:player_name/:category", (req, res) => {
+  const player_name = req.params.player_name;
   const category = req.params.category;
 
-  fs.readFile("files/best-time.txt", "utf-8", (err, data) => {
-    if (err) {
-      console.error("Error reading best-time.txt: ", err);
-      return res.status(500).send("Can't read file.");
-    }
-
-    const lines = data.split("\n");
-    lines.forEach((line) => {
-      if (line.split("~")[0] === category) {
-        res.status(200).send(line);
+  db`SELECT * FROM quiz_times WHERE player_name = ${player_name} AND category = ${category}`.then(
+    (response) => {
+      if (response.length === 0) {
+        return res
+          .status(200)
+          .json({ missing: "No time found for this player/category combo." });
+      } else {
+        return res.status(200).json({ best: response[0].best_time });
       }
-    });
-  });
+    }
+  );
 });
 
-app.get("/set-best-time/:category/:time", (req, res) => {
-  const category = req.params.category;
-  const newTime = req.params.time.split(":");
+app.post("/set-poke-times", (req, res) => {
+  const requestBody = req.body;
 
-  if (!category || !newTime) {
-    return res.status(400).send("No request body content.");
+  if (!requestBody) {
+    return res.status(400).json({ err: "No request body content." });
   }
 
-  fs.readFile("files/best-time.txt", "utf-8", (err, data) => {
-    if (err) {
-      console.error("Error reading best-time.txt: ", err);
-      return res.status(500).send("Can't read file.");
-    }
-
-    const lines = data.split("\n");
-    let idx = -1;
-    lines.forEach((line, index) => {
-      const splitLine = line.split("~");
-      if (splitLine[0] === category) {
-        const currTime = splitLine[1].split(":");
-        if (
-          newTime[0] < currTime[0] ||
-          (newTime[0] === currTime[0] && newTime[1] < currTime[1]) ||
-          (newTime[0] === currTime[0] &&
-            newTime[1] === currTime[1] &&
-            newTime[2] < currTime[2])
-        ) {
-          idx = index;
-        }
+  db`UPDATE pokemon_quiz_best_times SET best_time = ${requestBody.best_time} WHERE player_name = ${requestBody.player_name} AND category = ${requestBody.category} AND TIMEDIFF(${requestBody.best_time}, best_time) < 0`.then(
+    (response) => {
+      if (response.body) {
+        res.status(201).json({ info: "Updated existing best time!" });
+      } else {
+        db`INSERT INTO pokemon_quiz_best_times VALUES (${requestBody.best_time}, ${requestBody.category}, ${requestBody.player_name});`.then(
+          (insertResponse) => {
+            res.status(201).json({ info: "Added new best time!" });
+          }
+        );
       }
-    });
-
-    if (idx !== -1) {
-      lines[idx] = `${category}~${newTime[0]}:${newTime[1]}:${newTime[2]}`;
-
-      fs.writeFile("files/best-time.txt", lines.join("\n"), "utf-8", (err) => {
-        if (err) {
-          console.error("Error writing to best-time.txt: ", err);
-          return res.status(500).send("Can't write to file.");
-        }
-        res.status(201).send("Updated best-time.txt");
-      });
-
-      transporter.sendMail({
-        from: "time@geoffhuntsgood.com",
-        to: "geoffhuntsgood@gmail.com",
-        subject: "Pokelist Best Times Updated",
-        text: lines.join("\n")
-      });
-    } else {
-      res.status(200).send("Time not beaten, best-times not updated.");
     }
-  });
+  );
 });
 
 app.listen(3000, () => {
-  console.log("Express up at port 3000");
+  console.log("geoff-server up at port 3000");
 });
