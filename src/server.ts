@@ -14,7 +14,10 @@ const db = postgres({
   port: process.env.DB_PORT as unknown as number,
   database: process.env.DB_DATABASE,
   user: process.env.DB_USER,
-  pass: process.env.DB_PASS
+  pass: process.env.DB_PASS,
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
 app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
