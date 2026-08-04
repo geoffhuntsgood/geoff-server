@@ -25,9 +25,10 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   console.log(category);
 
   db`SELECT (player_name, category, best_time) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
-    (response: RowList<Row[]>) => {
-      if (response.length > 0) {
-        return res.status(200).json({ best: response[0] });
+    (response: Row) => {
+      if (response) {
+        console.log(response.best_time);
+        return res.status(200).json({ best: response });
       } else {
         return res
           .status(200)
@@ -49,9 +50,9 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
     VALUES (${body.player_name}, ${body.category}, ${body.best_time})
     ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
-      RETURNING id`.then((response: RowList<Row[]>) => {
+      RETURNING id`.then((response: Row) => {
         console.log(response);
-    if (response.length > 0 && response[0].id) {
+    if (response && response.id) {
       return res.status(201).json({ info: "Updated best times!" });
     } else {
       return res.status(500).json({ err: "Error upserting new time." });
