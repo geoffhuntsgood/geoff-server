@@ -1,7 +1,7 @@
 import cors from "cors";
 import "dotenv/config";
 import express, { json, Request, Response } from "express";
-import postgres, { Row } from "postgres";
+import postgres, { Row, RowList } from "postgres";
 import { BestTime } from "./types";
 
 const app = express();
@@ -19,12 +19,11 @@ const db = postgres({
 
 app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   const category = req.params.category;
-  console.log(category);
 
   db`SELECT * FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
-    (response: Row) => {
-      if (response) {
-        return res.status(200).json({ best: response });
+    (response: RowList<Row[]>) => {
+      if (response.length > 0) {
+        return res.status(200).json({ best: response[0] });
       } else {
         return res
           .status(200)
@@ -45,8 +44,8 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
     VALUES (${body.player_name}, ${body.category}, ${body.best_time})
     ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
-      RETURNING id`.then((response: Row) => {
-    if (response.id) {
+      RETURNING id`.then((response: RowList<Row[]>) => {
+    if (response.length > 0 && response[0].id) {
       return res.status(201).json({ info: "Updated best times!" });
     } else {
       return res.status(500).json({ err: "Error upserting new time." });
