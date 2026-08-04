@@ -26,7 +26,6 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   db`SELECT json_agg(quiz_times) FROM quiz_times WHERE category = ${category} GROUP BY best_time ORDER BY best_time ASC LIMIT 1`.then(
     (response: RowList<Row[]>) => {
       if (response && response.length > 0) {
-        console.log(response[0]);
         return res.status(200).json(response[0]);
       } else {
         return res
@@ -48,14 +47,15 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
   db`INSERT INTO quiz_times (player_name, category, best_time)
     VALUES (${body.player_name}, ${body.category}, ${body.best_time})
     ON CONFLICT (player_name, category) DO UPDATE
-      SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
-      RETURNING id`.then((response: RowList<Row[]>) => {
-    if (response && response[0].id) {
-      return res.status(201).json({ info: "Updated best times!" });
-    } else {
-      return res.status(500).json({ err: "Error upserting new time." });
+      SET best_time = LEAST(excluded.best_time, quiz_times.best_time)`.then(
+    (response: RowList<Row[]>) => {
+      if (response) {
+        return res.status(201).json({ info: "Updated best times!" });
+      } else {
+        return res.status(500).json({ err: "Error upserting new time." });
+      }
     }
-  });
+  );
 });
 
 app.listen(3000, () => {
