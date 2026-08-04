@@ -25,7 +25,7 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   console.log(category);
 
   db`SELECT (player_name, category, best_time) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
-    (response: Row) => {
+    (response: RowList<Row[]>) => {
       if (response) {
         console.log(response);
         return res.status(200).json({ best: response });
@@ -51,7 +51,7 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
     ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
       RETURNING id`.then((response: Row) => {
-        console.log(response);
+    console.log(response);
     if (response && response.id) {
       return res.status(201).json({ info: "Updated best times!" });
     } else {
