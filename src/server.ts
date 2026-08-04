@@ -27,7 +27,7 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   db`SELECT (player_name, category, best_time) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
     (response: Row) => {
       if (response) {
-        console.log(response.best_time);
+        console.log(response);
         return res.status(200).json({ best: response });
       } else {
         return res
