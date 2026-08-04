@@ -23,7 +23,7 @@ const db = postgres({
 app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   const category = req.params.category;
 
-  db`SELECT json_agg(quiz_times) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
+  db`SELECT json_agg(quiz_times) FROM quiz_times WHERE category = ${category} GROUP BY best_time ORDER BY best_time ASC LIMIT 1`.then(
     (response: RowList<Row[]>) => {
       if (response) {
         console.log(response[0]);
