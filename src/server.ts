@@ -22,6 +22,7 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
 
   db`SELECT * FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
     (response: RowList<Row[]>) => {
+      console.log(response);
       if (response.length > 0) {
         return res.status(200).json({ best: response[0] });
       } else {
@@ -34,6 +35,8 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
 });
 
 app.post("/quiz-best-time", (req: Request, res: Response) => {
+  req.accepts("application/json");
+  console.log(req);
   const body: BestTime = JSON.parse(req.body);
 
   if (!body) {
