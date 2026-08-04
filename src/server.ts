@@ -24,13 +24,11 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   const category = req.params.category;
   console.log(category);
 
-  db`SELECT * FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
+  db`SELECT (player_name, category, best_time) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
     (response: RowList<Row[]>) => {
       if (response.length > 0) {
-        console.log(response[0]);
         return res.status(200).json({ best: response[0] });
       } else {
-        console.log("missing?");
         return res
           .status(200)
           .json({ missing: "No time found for this category." });
