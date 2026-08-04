@@ -22,13 +22,12 @@ const db = postgres({
 
 app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   const category = req.params.category;
-  console.log(category);
 
-  db`SELECT (player_name, category, best_time) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
+  db`SELECT json_agg(quiz_times) FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
     (response: RowList<Row[]>) => {
       if (response) {
-        console.log(response);
-        return res.status(200).json({ best: response });
+        console.log(response[0]);
+        return res.status(200).json(response[0]);
       } else {
         return res
           .status(200)
@@ -50,9 +49,8 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
     VALUES (${body.player_name}, ${body.category}, ${body.best_time})
     ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
-      RETURNING id`.then((response: Row) => {
-    console.log(response);
-    if (response && response.id) {
+      RETURNING id`.then((response: RowList<Row[]>) => {
+    if (response && response[0].id) {
       return res.status(201).json({ info: "Updated best times!" });
     } else {
       return res.status(500).json({ err: "Error upserting new time." });
