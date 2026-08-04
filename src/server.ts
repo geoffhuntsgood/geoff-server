@@ -19,6 +19,7 @@ const db = postgres({
 
 app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
   const category = req.params.category;
+  console.log(category);
 
   db`SELECT * FROM quiz_times WHERE category = ${category} ORDER BY best_time ASC LIMIT 1`.then(
     (response: Row) => {
@@ -34,7 +35,7 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
 });
 
 app.post("/quiz-best-time", (req: Request, res: Response) => {
-  const body: BestTime = req.body;
+  const body: BestTime = JSON.parse(req.body);
 
   if (!body) {
     return res.status(400).json({ err: "No request body content." });
