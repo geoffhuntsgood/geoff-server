@@ -37,8 +37,8 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
 });
 
 app.post("/quiz-best-time", (req: Request, res: Response) => {
-  const body: BestTime = req.body;
-  console.log(body);
+  const body: BestTime = JSON.parse(req.body);
+  console.log(body.player_name);
 
   if (!body) {
     return res.status(400).json({ err: "No request body content." });
