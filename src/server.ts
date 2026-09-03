@@ -44,7 +44,6 @@ app.get("/quiz-best-time/:category", (req: Request, res: Response) => {
 
 app.post("/quiz-best-time", (req: Request, res: Response) => {
   const body: BestTime = req.body;
-  console.log(body.player_name);
 
   if (!body) {
     return res.status(400).json({ err: "No request body content." });
@@ -62,8 +61,11 @@ app.post("/quiz-best-time", (req: Request, res: Response) => {
   } catch {
     (error: Error) => {
       console.log(error);
+      return res.status(500).json({ err: "Error when trying to save!" });
     };
   }
+
+  return res.status(500).json({ err: "Saving super messed up." });
 });
 
 app.listen(3000, () => {
