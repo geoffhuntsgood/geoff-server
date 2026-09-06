@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "lib": ["ESNext"],
