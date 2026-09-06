@@ -2,7 +2,6 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "lib": ["ESNext"],
     "module": "esnext",
@@ -13,7 +12,6 @@
     "noUncheckedSideEffectImports": false,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es2025",
