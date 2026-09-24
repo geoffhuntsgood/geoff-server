@@ -19,14 +19,18 @@ const pgClient = new Client({
   }
 });
 
+const getQuery = (category: string, player?: string) =>
+  `
+    SELECT json_agg(quiz_times) FROM quiz_times
+    WHERE category = ${category}
+    ${player ? `AND player_name = ${player}` : ""}
+    GROUP BY best_time ORDER BY best_time ASC LIMIT 1
+  `;
+
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
     await pgClient.connect();
-    const getTime = await pgClient.query(`
-      SELECT json_agg(quiz_times) FROM quiz_times
-      WHERE category = ${req.params.category}
-      GROUP BY best_time ORDER BY best_time ASC LIMIT 1
-    `);
+    const getTime = await pgClient.query(getQuery(String(req.params.category)));
     if (getTime.rows.length > 0) {
       return res.status(200).json(getTime.rows[0]);
     } else {
@@ -45,16 +49,27 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
 
   try {
     await pgClient.connect();
-    const saveTime = await pgClient.query(`
+    const checkTime = await pgClient.query(
+      getQuery(body.category, body.player_name)
+    );
+    if (
+      checkTime.rows.length === 0 ||
+      (checkTime.rows && checkTime.rows[0].best_time > body.best_time)
+    ) {
+      await pgClient.query(`
       INSERT INTO quiz_times (player_name, category, best_time)
       VALUES (${body.player_name}, ${body.category}, ${body.best_time})
       ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
     `);
-    console.log(saveTime);
-    return res.status(201).json({
-      msg: `Updated ${body.category} with ${body.best_time} for player ${body.player_name}`
-    });
+      return res.status(201).json({
+        msg: `Updated ${body.category} with ${body.best_time} for player ${body.player_name}`
+      });
+    } else {
+      return res.status(200).json({
+        msg: `Your previous time ${checkTime.rows[0]} was better!`
+      });
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ msg: err });
