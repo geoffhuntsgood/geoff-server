@@ -45,12 +45,13 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
 
   try {
     await pgClient.connect();
-    await pgClient.query(`
+    const saveTime = await pgClient.query(`
       INSERT INTO quiz_times (player_name, category, best_time)
       VALUES (${body.player_name}, ${body.category}, ${body.best_time})
       ON CONFLICT (player_name, category) DO UPDATE
       SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
     `);
+    console.log(saveTime);
     return res.status(201).json({
       msg: `Updated ${body.category} with ${body.best_time} for player ${body.player_name}`
     });
