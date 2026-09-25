@@ -19,6 +19,8 @@ const pgClient = new Client({
   }
 });
 
+await pgClient.connect();
+
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
     await pgClient.connect();
@@ -40,8 +42,6 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
       console.log(err);
       return res.status(500).json({ error: err });
     }
-  } finally {
-    await pgClient.end();
   }
 });
 
@@ -49,7 +49,6 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
   const body: BestTime = req.body;
 
   try {
-    await pgClient.connect();
     const checkTime = await pgClient.query({
       text: "SELECT json_agg(quiz_times) FROM quiz_times WHERE category = $1 AND player_name = $2 GROUP BY best_time ORDER BY best_time ASC LIMIT 1",
       values: [body.category, body.player_name]
@@ -80,8 +79,6 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
       console.log(err);
       return res.status(500).json({ error: err });
     }
-  } finally {
-    await pgClient.end();
   }
 });
 
