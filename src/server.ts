@@ -19,18 +19,15 @@ const pgClient = new Client({
   }
 });
 
-const getQuery = (category: string, player?: string) =>
-  `
-    SELECT json_agg(quiz_times) FROM quiz_times
-    WHERE category = ${category}
-    ${player ? `AND player_name = ${player}` : ""}
-    GROUP BY best_time ORDER BY best_time ASC LIMIT 1
-  `;
-
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
     await pgClient.connect();
-    const getTime = await pgClient.query(getQuery(String(req.params.category)));
+    const getTime = await pgClient.query(`
+      SELECT json_agg(quiz_times) FROM quiz_times
+      WHERE category = ${req.params.category}
+      GROUP BY best_time ORDER BY best_time ASC LIMIT 1
+    `);
+
     if (getTime.rows.length > 0) {
       return res.status(200).json(getTime.rows[0]);
     } else {
@@ -47,9 +44,13 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
 
   try {
     await pgClient.connect();
-    const checkTime = await pgClient.query(
-      getQuery(body.category, body.player_name)
-    );
+    const checkTime = await pgClient.query(`
+      SELECT json_agg(quiz_times) FROM quiz_times
+      WHERE category = ${body.category}
+      AND player_name = ${body.player_name}
+      GROUP BY best_time ORDER BY best_time ASC LIMIT 1
+    `);
+
     if (
       checkTime.rows.length === 0 ||
       (checkTime.rows && checkTime.rows[0].best_time > body.best_time)
