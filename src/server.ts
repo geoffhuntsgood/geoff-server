@@ -40,6 +40,8 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
       console.log(err);
       return res.status(500).json({ error: err });
     }
+  } finally {
+    await pgClient.end();
   }
 });
 
@@ -78,6 +80,8 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
       console.log(err);
       return res.status(500).json({ error: err });
     }
+  } finally {
+    await pgClient.end();
   }
 });
 
