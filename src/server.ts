@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { json, Request, Response, urlencoded } from "express";
-import { Client, DatabaseError } from "pg";
+import { DatabaseError, Pool } from "pg";
 import { BestTime } from "./types";
 
 const server = express();
@@ -8,7 +8,7 @@ server.use(cors({ origin: true }));
 server.use(urlencoded());
 server.use(json());
 
-const pgClient = new Client({
+const pgClient = new Pool({
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT),
   database: process.env.DB_DATABASE,
@@ -19,11 +19,8 @@ const pgClient = new Client({
   }
 });
 
-await pgClient.connect();
-
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
-    await pgClient.connect();
     const getTime = await pgClient.query({
       text: "SELECT json_agg(quiz_times) FROM quiz_times WHERE category = $1 GROUP BY best_time ORDER BY best_time ASC LIMIT 1",
       values: [req.params.category]
