@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { json, Request, Response, urlencoded } from "express";
-import { Client } from "pg";
+import { Client, DatabaseError } from "pg";
 import { BestTime } from "./types";
 
 const server = express();
@@ -34,8 +34,13 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
       return res.status(204).json({ msg: "No time found for this category." });
     }
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err });
+    if (err instanceof DatabaseError) {
+      console.log(err.stack);
+      return res.status(500).json({ cause: err.cause, stack: err.stack });
+    } else {
+      console.error(err);
+      return res.status(500).json({ error: err });
+    }
   }
 });
 
