@@ -38,9 +38,7 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
     }
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: err });
-  } finally {
-    await pgClient.end();
+    return res.status(500).json({ error: err });
   }
 });
 
@@ -72,9 +70,7 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
     }
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ msg: err });
-  } finally {
-    await pgClient.end();
+    return res.status(500).json({ error: err });
   }
 });
 
