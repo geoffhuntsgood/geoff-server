@@ -19,14 +19,23 @@ const pgClient = new Client({
   }
 });
 
+const handleError = (err: any, res: Response) => {
+  if (err instanceof DatabaseError) {
+    console.log(err.stack);
+    return res.status(500).json({ stack: err.stack });
+  } else {
+    console.log(err);
+    return res.status(500).json({ error: err });
+  }
+};
+
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
     await pgClient.connect();
-    const getTime = await pgClient.query(`
-      SELECT json_agg(quiz_times) FROM quiz_times
-      WHERE category = ${req.params.category}
-      GROUP BY best_time ORDER BY best_time ASC LIMIT 1
-    `);
+    const getTime = await pgClient.query({
+      text: "SELECT json_agg(quiz_times) FROM quiz_times WHERE category = $1 GROUP BY best_time ORDER BY best_time ASC LIMIT 1",
+      values: [req.params.category]
+    });
 
     if (getTime.rows.length > 0) {
       return res.status(200).json(getTime.rows[0]);
@@ -34,13 +43,7 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
       return res.status(204).json({ msg: "No time found for this category." });
     }
   } catch (err) {
-    if (err instanceof DatabaseError) {
-      console.log(err.stack);
-      return res.status(500).json({ cause: err.cause, stack: err.stack });
-    } else {
-      console.error(err);
-      return res.status(500).json({ error: err });
-    }
+    return handleError(err, res);
   }
 });
 
@@ -49,23 +52,20 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
 
   try {
     await pgClient.connect();
-    const checkTime = await pgClient.query(`
-      SELECT json_agg(quiz_times) FROM quiz_times
-      WHERE category = ${body.category}
-      AND player_name = ${body.player_name}
-      GROUP BY best_time ORDER BY best_time ASC LIMIT 1
-    `);
+    const checkTime = await pgClient.query({
+      text: "SELECT json_agg(quiz_times) FROM quiz_times WHERE category = $1 AND player_name = $2 GROUP BY best_time ORDER BY best_time ASC LIMIT 1",
+      values: [body.category, body.player_name]
+    });
 
     if (
       checkTime.rows.length === 0 ||
       (checkTime.rows && checkTime.rows[0].best_time > body.best_time)
     ) {
-      await pgClient.query(`
-      INSERT INTO quiz_times (player_name, category, best_time)
-      VALUES (${body.player_name}, ${body.category}, ${body.best_time})
-      ON CONFLICT (player_name, category) DO UPDATE
-      SET best_time = LEAST(excluded.best_time, quiz_times.best_time)
-    `);
+      await pgClient.query({
+        text: "INSERT INTO quiz_times (player_name, category, best_time) VALUES ($1, $2, $3) ON CONFLICT (player_name, category) DO UPDATE SET best_time = LEAST(excluded.best_time, quiz_times.best_time)",
+        values: [body.player_name, body.category, body.best_time]
+      });
+
       return res.status(201).json({
         msg: `Updated ${body.category} with ${body.best_time} for player ${body.player_name}`
       });
@@ -75,8 +75,7 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
       });
     }
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err });
+    return handleError(err, res);
   }
 });
 
