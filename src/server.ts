@@ -19,16 +19,6 @@ const pgClient = new Client({
   }
 });
 
-const handleError = (err: any, res: Response) => {
-  if (err instanceof DatabaseError) {
-    console.log(err.stack);
-    return res.status(500).json({ stack: err.stack });
-  } else {
-    console.log(err);
-    return res.status(500).json({ error: err });
-  }
-};
-
 server.get("/get-best-time/:category", async (req: Request, res: Response) => {
   try {
     await pgClient.connect();
@@ -43,7 +33,13 @@ server.get("/get-best-time/:category", async (req: Request, res: Response) => {
       return res.status(204).json({ msg: "No time found for this category." });
     }
   } catch (err) {
-    return handleError(err, res);
+    if (err instanceof DatabaseError) {
+      console.log(err.stack);
+      return res.status(500).json({ stack: err.stack });
+    } else {
+      console.log(err);
+      return res.status(500).json({ error: err });
+    }
   }
 });
 
@@ -75,7 +71,13 @@ server.post("/save-best-time", async (req: Request, res: Response) => {
       });
     }
   } catch (err) {
-    return handleError(err, res);
+    if (err instanceof DatabaseError) {
+      console.log(err.stack);
+      return res.status(500).json({ stack: err.stack });
+    } else {
+      console.log(err);
+      return res.status(500).json({ error: err });
+    }
   }
 });
 
